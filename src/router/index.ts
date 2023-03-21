@@ -42,6 +42,25 @@ const routes: Array<RouteRecordRaw> = [
           icon: "calendar",
           auth: true,
         },
+        // 在独享守卫中发起请求
+        // 打卡信息通过状态管理进行获取，并存储到状态管理中进行共享，并且进行缓存
+        beforeEnter(to, from, next) {
+          const usersInfos = (store.state as StateAll).users.infos;
+          // console.log("usersInfos", usersInfos);
+          const signsInfos = (store.state as StateAll).signs.infos;
+          if (_.isEmpty(signsInfos)) {
+            store
+              .dispatch("signs/getTime", { userid: usersInfos._id })
+              .then((res) => {
+                if (res.data.errcode === 0) {
+                  store.commit("signs/updateInfos", res.data.infos);
+                  next();
+                }
+              });
+          } else {
+            next();
+          }
+        },
       },
       {
         path: "exception",
@@ -52,6 +71,22 @@ const routes: Array<RouteRecordRaw> = [
           title: "异常考勤查询",
           icon: "warning",
           auth: true,
+        },
+        beforeEnter(to, from, next) {
+          const usersInfos = (store.state as StateAll).users.infos;
+          const signsInfos = (store.state as StateAll).signs.infos;
+          if (_.isEmpty(signsInfos)) {
+            store
+              .dispatch("signs/getTime", { userid: usersInfos._id })
+              .then((res) => {
+                if (res.data.errcode === 0) {
+                  store.commit("signs/updateInfos", res.data.infos);
+                  next();
+                }
+              });
+          } else {
+            next();
+          }
         },
       },
       {
