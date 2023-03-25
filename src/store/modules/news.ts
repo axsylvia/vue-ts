@@ -1,22 +1,35 @@
-
-import type { MutationTree, ActionTree, GetterTree } from 'vuex'
-import type { State } from '../index'
-
-export interface NewsState {
+import http from "@/utils/http";
+import type { MutationTree, ActionTree, GetterTree } from "vuex";
+import type { State } from "../index";
+interface Info {
+  [index: string]: unknown;
 }
-
+export interface NewsState {
+  info: Info;
+}
 const state: NewsState = {
+  info: {},
 };
-
 const mutations: MutationTree<NewsState> = {
+  updateInfo(state, payload) {
+    state.info = payload;
+  },
 };
-const actions: ActionTree<NewsState, State> = {};
+const actions: ActionTree<NewsState, State> = {
+  // 获取用户消息提醒接口
+  getRemind(context, payload) {
+    return http.get("news/remind", payload);
+  },
+  // 更新用户消息提醒接口
+  putRemind(context, payload) {
+    return http.put("news/remind", payload);
+  },
+};
 const getters: GetterTree<NewsState, State> = {};
-
 export default {
   namespaced: true,
   state,
   mutations,
   actions,
-  getters
-}
+  getters,
+};

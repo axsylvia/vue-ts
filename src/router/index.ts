@@ -9,6 +9,9 @@ const Sign = () => import("@/views/Sign/Sign.vue");
 const Exception = () => import("@/views/Exception/Exception.vue");
 const Apply = () => import("@/views/Apply/Apply.vue");
 const Check = () => import("@/views/Check/Check.vue");
+const NotAuth = () => import("@/views/NotAuth/NotAuth.vue");
+const NotFound = () => import("@/views/NotFound/NotFound.vue");
+const NotServer = () => import("@/views/NotServer/NotServer.vue");
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -44,22 +47,32 @@ const routes: Array<RouteRecordRaw> = [
         },
         // 在独享守卫中发起请求
         // 打卡信息通过状态管理进行获取，并存储到状态管理中进行共享，并且进行缓存
-        beforeEnter(to, from, next) {
+        async beforeEnter(to, from, next) {
           const usersInfos = (store.state as StateAll).users.infos;
-          // console.log("usersInfos", usersInfos);
           const signsInfos = (store.state as StateAll).signs.infos;
+          // 路由守卫获取初始数据
+          const newsInfo = (store.state as StateAll).news.info;
           if (_.isEmpty(signsInfos)) {
-            store
-              .dispatch("signs/getTime", { userid: usersInfos._id })
-              .then((res) => {
-                if (res.data.errcode === 0) {
-                  store.commit("signs/updateInfos", res.data.infos);
-                  next();
-                }
-              });
-          } else {
-            next();
+            const res = await store.dispatch("signs/getTime", {
+              userid: usersInfos._id,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("signs/updateInfos", res.data.infos);
+            } else {
+              next();
+            }
           }
+          if (_.isEmpty(newsInfo)) {
+            const res = await store.dispatch("news/getRemind", {
+              userid: usersInfos._id,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("news/updateInfo", res.data.info);
+            } else {
+              return;
+            }
+          }
+          next();
         },
       },
       {
@@ -72,21 +85,42 @@ const routes: Array<RouteRecordRaw> = [
           icon: "warning",
           auth: true,
         },
-        beforeEnter(to, from, next) {
+        async beforeEnter(to, from, next) {
           const usersInfos = (store.state as StateAll).users.infos;
           const signsInfos = (store.state as StateAll).signs.infos;
+          const checksApplyList = (store.state as StateAll).checks.applyList;
+          const newsInfo = (store.state as StateAll).news.info;
           if (_.isEmpty(signsInfos)) {
-            store
-              .dispatch("signs/getTime", { userid: usersInfos._id })
-              .then((res) => {
-                if (res.data.errcode === 0) {
-                  store.commit("signs/updateInfos", res.data.infos);
-                  next();
-                }
-              });
-          } else {
-            next();
+            const res = await store.dispatch("signs/getTime", {
+              userid: usersInfos._id,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("signs/updateInfos", res.data.infos);
+            } else {
+              return;
+            }
           }
+          if (_.isEmpty(checksApplyList)) {
+            const res = await store.dispatch("checks/getApply", {
+              applicantid: usersInfos._id,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("checks/updateApplyList", res.data.rets);
+            } else {
+              return;
+            }
+          }
+          if (_.isEmpty(newsInfo)) {
+            const res = await store.dispatch("news/getRemind", {
+              userid: usersInfos._id,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("news/updateInfo", res.data.info);
+            } else {
+              return;
+            }
+          }
+          next();
         },
       },
       {
@@ -99,6 +133,34 @@ const routes: Array<RouteRecordRaw> = [
           icon: "document-add",
           auth: true,
         },
+        async beforeEnter(to, from, next) {
+          const usersInfos = (store.state as StateAll).users.infos;
+          const checksApplyList = (store.state as StateAll).checks.applyList;
+          const newsInfo = (store.state as StateAll).news.info;
+          // 判断是否为空对象或空数组
+          if (_.isEmpty(checksApplyList)) {
+            const res = await store.dispatch("checks/getApply", {
+              applicantid: usersInfos._id,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("checks/updateApplyList", res.data.rets);
+            } else {
+              return;
+            }
+          }
+          if (newsInfo.applicant) {
+            const res = await store.dispatch("news/putRemind", {
+              userid: usersInfos._id,
+              applicant: false,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("news/updateInfo", res.data.info);
+            } else {
+              return;
+            }
+          }
+          next();
+        },
       },
       {
         path: "check",
@@ -110,6 +172,33 @@ const routes: Array<RouteRecordRaw> = [
           icon: "finished",
           auth: true,
         },
+        async beforeEnter(to, from, next) {
+          const usersInfos = (store.state as StateAll).users.infos;
+          const checksCheckList = (store.state as StateAll).checks.checkList;
+          const newsInfo = (store.state as StateAll).news.info;
+          if (_.isEmpty(checksCheckList)) {
+            const res = await store.dispatch("checks/getApply", {
+              approverid: usersInfos._id,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("checks/updateCheckList", res.data.rets);
+            } else {
+              return;
+            }
+          }
+          if (newsInfo.approver) {
+            const res = await store.dispatch("news/putRemind", {
+              userid: usersInfos._id,
+              approver: false,
+            });
+            if (res.data.errcode === 0) {
+              store.commit("news/updateInfo", res.data.info);
+            } else {
+              return;
+            }
+          }
+          next();
+        },
       },
     ],
   },
@@ -117,6 +206,25 @@ const routes: Array<RouteRecordRaw> = [
     path: "/login",
     name: "login",
     component: Login,
+  },
+  {
+    path: "/403",
+    name: "notAuth",
+    component: NotAuth,
+  },
+  {
+    path: "/404",
+    name: "notFound",
+    component: NotFound,
+  },
+  {
+    path: "/500",
+    name: "notServer",
+    component: NotServer,
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/404",
   },
 ];
 
@@ -135,7 +243,12 @@ router.beforeEach((to, from, next) => {
       store.dispatch("users/infos").then((res) => {
         if (res.data.errcode === 0) {
           store.commit("users/updateInfos", res.data.infos);
-          next();
+          // 403没有权限
+          if (res.data.infos.permission.includes(to.name)) {
+            next();
+          } else {
+            next("/403");
+          }
         }
       });
     } else {

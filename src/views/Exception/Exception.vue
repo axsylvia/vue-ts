@@ -15,7 +15,7 @@
   </div>
   <el-row :gutter="20">
     <el-col :span="12">
-      <el-empty v-if="false" description="暂无异常考勤" />
+      <el-empty v-if="applyListMonth.length === 0" description="暂无异常考勤" />
       <el-timeline v-else>
         <el-timeline-item
           v-for="item in detailMonth"
@@ -33,24 +33,21 @@
       </el-timeline>
     </el-col>
     <el-col :span="12">
-      <el-empty v-if="false" description="暂无申请审批" />
+      <el-empty v-if="applyListMonth.length === 0" description="暂无申请审批" />
       <el-timeline v-else>
-        <el-timeline-item timestamp="事假" placement="top">
+        <el-timeline-item
+          v-for="item in applyListMonth"
+          :key="(item._id as string)"
+          :timestamp="(item.reason as string)"
+          placement="top"
+        >
           <el-card>
-            <h4>已通过</h4>
+            <h4>{{ item.state }}</h4>
             <p class="apply-info">
-              申请日期 2022-10-01 12:00:00 - 2022-11-08 12:00:00
+              申请日期 {{ (item.time as string[])[0] }} -
+              {{ (item.time as string[])[1] }}
             </p>
-            <p class="apply-info">申请详情 123</p>
-          </el-card>
-        </el-timeline-item>
-        <el-timeline-item timestamp="事假" placement="top">
-          <el-card>
-            <h4>已通过</h4>
-            <p class="apply-info">
-              申请日期 2022-10-01 12:00:00 - 2022-11-08 12:00:00
-            </p>
-            <p class="apply-info">申请详情 123</p>
+            <p class="apply-info">申请详情 {{ item.note }}</p>
           </el-card>
         </el-timeline-item>
       </el-timeline>
@@ -73,6 +70,17 @@ const signsInfos = computed(() => store.state.signs.infos);
 const date = new Date();
 const year = date.getFullYear();
 const month = ref(Number(route.query.month) || date.getMonth() + 1);
+
+// 审批数据集合:过滤applyList
+const applyListMonth = computed(() =>
+  store.state.checks.applyList.filter((v) => {
+    const startTime = (v.time as string[])[0].split(" ")[0].split("-");
+    const endTime = (v.time as string[])[1].split(" ")[0].split("-");
+    return (
+      startTime[1] <= toZero(month.value) && endTime[1] >= toZero(month.value)
+    );
+  })
+);
 
 const ret = (signsInfos.value.detail as { [index: string]: unknown })[
   toZero(month.value)

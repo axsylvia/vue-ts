@@ -3,6 +3,7 @@ import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import store from "@/store";
 import type { StateAll } from "@/store";
 import { ElMessage } from "element-plus";
+import router from "@/router";
 
 // 对axios进行二次封装
 // 基础配置
@@ -35,6 +36,8 @@ instance.interceptors.response.use(
       setTimeout(() => {
         window.location.replace("/login");
       }, 1000);
+    } else if (response.data.errmsg === "error") {
+      router.push("/500");
     }
     return response;
   },
